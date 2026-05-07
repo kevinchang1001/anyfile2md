@@ -1,5 +1,5 @@
 import pytest
-from converters.base import BaseConverter, ConversionResult
+from scripts.converters.base import BaseConverter, ConversionResult
 
 def test_base_converter_is_abstract():
     """BaseConverter cannot be instantiated directly"""
