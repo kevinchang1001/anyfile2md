@@ -58,9 +58,13 @@ class EngineRegistry:
                 best_engine = engine
 
         if best_engine is None:
-            # Fallback to markitdown
-            best_engine = MarkitdownConverter()
-            best_confidence = 0.0
+            fallback = MarkitdownConverter()
+            if fallback.is_available():
+                best_engine = fallback
+                best_confidence = 0.0
+            else:
+                # No available engine at all
+                return None, 0.0
 
         # Return actual confidence, not effective_score
         # (effective_score was only used for engine selection comparison)
