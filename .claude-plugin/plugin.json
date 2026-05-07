@@ -1,0 +1,10 @@
+{
+  "name": "anyfile2md",
+  "version": "0.2.0",
+  "description": "Convert various file formats (DOCX, XLSX, PPTX, PDF, Images, HTML) to Markdown using markitdown",
+  "author": {
+    "name": "Claude",
+    "email": "support@anthropic.com"
+  },
+  "keywords": ["markdown", "converter", "document", "pdf", "office"]
+}

@@ -1,0 +1,21 @@
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Output files (user data)
+*.md
+output_markdown/
+input_files/
+
+# Config (user-specific, local)
+anyfile2md.config.local.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

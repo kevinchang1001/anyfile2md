@@ -1,0 +1,62 @@
+{
+  "name": "anyfile2md",
+  "tagline": "Convert any file to Markdown - DOCX, PDF, Excel, Images, and 28+ formats",
+  "description": "A comprehensive document conversion plugin powered by Microsoft's MarkItDown. Convert documents, spreadsheets, presentations, PDFs, images, and data formats to Markdown with a single command or conversational interface.",
+  "categories": ["productivity", "developer-tools", "utilities"],
+  "features": [
+    "Convert 28+ file formats to Markdown",
+    "Batch conversion with directory structure preservation",
+    "Built-in OCR for scanned documents and images",
+    "MCP server for programmatic access",
+    "Python API for custom integrations",
+    "Configurable input/output directories"
+  ],
+  "highlights": [
+    "Office Documents: DOCX, XLSX, PPTX, PDF",
+    "Data Formats: CSV, JSON, XML, YAML, TOML",
+    "eBooks: EPUB, Jupyter Notebooks",
+    "Images with EXIF extraction and OCR",
+    "Web content: YouTube, Wikipedia URLs"
+  ],
+  "install_command": "cc --plugin-dir /path/to/anyfile2md",
+  "minimum Claude Version": "2.0",
+  "license": "MIT",
+  "author": {
+    "name": "Claude",
+    "url": "https://anthropic.com"
+  },
+  "repository": {
+    "type": "local",
+    "note": "Local repository - not published to public marketplace"
+  },
+  "screenshots": [],
+  "demo": {
+    "description": "Convert a PDF to Markdown in seconds",
+    "commands": [
+      "/anyfile2md convert report.pdf",
+      "将 document.docx 转为 markdown"
+    ]
+  },
+  "changelog": [
+    {
+      "version": "0.2.0",
+      "date": "2026-05-07",
+      "changes": [
+        "Added MCP server support (STDIO and HTTP modes)",
+        "Added Python API wrapper",
+        "Added OCR plugin documentation",
+        "Extended format support to 28+ formats",
+        "Added batch conversion with directory structure preservation"
+      ]
+    },
+    {
+      "version": "0.1.0",
+      "date": "2026-03-11",
+      "changes": [
+        "Initial release",
+        "Core conversion functionality",
+        "Basic CLI scripts"
+      ]
+    }
+  ]
+}

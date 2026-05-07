@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "markitdown": {
+      "command": "markitdown-mcp",
+      "args": [],
+      "description": "MarkItDown MCP server for file-to-markdown conversion",
+      "protocol": "stdio"
+    }
+  },
+  "mcpServersHTTP": {
+    "markitdown-http": {
+      "command": "markitdown-mcp",
+      "args": ["--http", "--host", "127.0.0.1", "--port", "3001"],
+      "description": "MarkItDown MCP server (HTTP mode) for remote agents"
+    }
+  }
+}
