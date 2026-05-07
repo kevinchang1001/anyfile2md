@@ -113,10 +113,12 @@ class MineruConverter(BaseConverter):
                     quality_score=90
                 )
             else:
+                # MinerU API may differ - provide helpful error
+                error_msg = result.stderr if result.stderr else "Unknown error"
                 return ConversionResult(
                     success=False,
                     engine=self.name,
-                    error=result.stderr
+                    error=f"MinerU API error: {error_msg}. Note: MinerU integration requires Phase 4 implementation."
                 )
 
         except subprocess.TimeoutExpired:

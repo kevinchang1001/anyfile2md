@@ -51,10 +51,9 @@ class EngineRegistry:
             if not engine.is_available():
                 continue
             confidence = engine.can_handle(file_path)
-            # Use priority as tiebreaker for selection
-            effective_score = confidence * 100 - engine.priority
-            if effective_score > best_confidence:
-                best_confidence = effective_score
+            # Pure confidence-based selection (priority is irrelevant for engine capability)
+            if confidence > best_confidence:
+                best_confidence = confidence
                 best_engine = engine
 
         if best_engine is None:
