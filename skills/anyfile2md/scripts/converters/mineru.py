@@ -1,8 +1,6 @@
 # skills/anyfile2md/scripts/converters/mineru.py
 """MinerU converter implementation (stub)."""
 
-from pathlib import Path
-
 from .base import BaseConverter, ConversionResult
 
 
