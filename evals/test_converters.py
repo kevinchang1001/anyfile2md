@@ -81,10 +81,11 @@ def test_mineru_converter_properties():
     assert conv.priority == 20
 
 def test_mineru_stub_returns_not_available():
-    """Mineru stub is not available (not implemented yet)."""
+    """Mineru availability depends on installation."""
     conv = MineruConverter()
-    # Stub should return False until implemented
-    assert conv.is_available() is False
+    # is_available() now checks if mineru is installed
+    result = conv.is_available()
+    assert isinstance(result, bool)
 
 def test_mineru_can_handle_complex_pdf():
     """Mineru returns higher confidence for complex PDFs."""
