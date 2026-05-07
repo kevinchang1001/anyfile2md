@@ -68,25 +68,23 @@ class ComplexityDetector:
             return result
 
         try:
-            doc = fitz.open(file_path)
-            result["page_count"] = len(doc)
+            with fitz.open(file_path) as doc:
+                result["page_count"] = len(doc)
 
-            # Check first few pages for headers/footers
-            result["has_headers_footers"] = self._detect_headers_footers(doc)
+                # Check first few pages for headers/footers
+                result["has_headers_footers"] = self._detect_headers_footers(doc)
 
-            # Check for scanned (image-based) pages
-            result["is_scanned"] = self._detect_scanned(doc)
+                # Check for scanned (image-based) pages
+                result["is_scanned"] = self._detect_scanned(doc)
 
-            # Check for multi-column layout
-            result["has_multi_column"] = self._detect_multi_column(doc)
+                # Check for multi-column layout
+                result["has_multi_column"] = self._detect_multi_column(doc)
 
-            # Check for tables
-            result["has_tables"] = self._detect_tables(doc)
+                # Check for tables
+                result["has_tables"] = self._detect_tables(doc)
 
-            # Language ratio check
-            result["language_ratio"] = self._detect_language_ratio(doc)
-
-            doc.close()
+                # Language ratio check
+                result["language_ratio"] = self._detect_language_ratio(doc)
         except Exception:
             pass
 
@@ -209,9 +207,13 @@ class ComplexityDetector:
     def _detect_tables(self, doc) -> bool:
         """Detect tables by looking for structured grid patterns."""
         for page in doc[:3]:  # Check first 3 pages
-            tables = page.find_tables()
-            if tables and len(tables) > 0:
-                return True
+            try:
+                table = page.find_tables()
+                # PyMuPDF returns a TableFinder object with .tables attribute
+                if hasattr(table, 'tables') and len(table.tables) > 0:
+                    return True
+            except Exception:
+                pass
         return False
 
     def _detect_language_ratio(self, doc) -> float:
