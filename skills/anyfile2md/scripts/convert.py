@@ -63,14 +63,15 @@ except ImportError:
 CONVERSION_TIMEOUT: int = 60  # seconds
 
 
-def convert_file(input_path: str, output_path: str, enable_plugins: bool = False) -> bool:
+def convert_file(input_path: str, output_path: str, enable_plugins: bool = False, engine=None) -> bool:
     """
     Convert a single file to Markdown.
 
     Args:
         input_path: Path to input file
         output_path: Path to output markdown file
-        enable_plugins: Whether to enable markitdown plugins
+        enable_plugins: Whether to enable markitdown plugins (for fallback subprocess only)
+        engine: BaseConverter instance to use for conversion (optional)
 
     Returns:
         True if conversion successful, False otherwise
@@ -90,6 +91,17 @@ def convert_file(input_path: str, output_path: str, enable_plugins: bool = False
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
+    # Use engine.convert() if engine is provided and available
+    if engine is not None and isinstance(engine, BaseConverter) and engine.is_available():
+        result = engine.convert(str(input_file), str(output_file))
+        if result.success:
+            print(f"Successfully converted: {input_file} -> {output_file} (engine: {engine.name})")
+            return True
+        else:
+            print(f"Conversion failed: {result.error}", file=sys.stderr)
+            return False
+
+    # Fallback to markitdown subprocess
     try:
         cmd = ["markitdown", str(input_file)]
 
@@ -164,6 +176,9 @@ def main():
 
     args = parser.parse_args()
 
+    # Initialize engine to None (will be set based on --engine argument)
+    engine = None
+
     if args.list_engines:
         if EngineRegistry is None:
             print("Engine registry not available")
@@ -211,7 +226,7 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    success = convert_file(args.input, args.output, args.plugins)
+    success = convert_file(args.input, args.output, args.plugins, engine)
     sys.exit(0 if success else 1)
 
 
