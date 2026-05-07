@@ -1,7 +1,9 @@
 # skills/anyfile2md/scripts/converters/fallback.py
 """Fallback handler for multi-engine conversion with automatic retry."""
 
+import json
 import logging
+from pathlib import Path
 from typing import Optional, Tuple
 
 from .base import BaseConverter, ConversionResult
@@ -38,7 +40,8 @@ class FallbackHandler:
         self,
         input_path: str,
         output_path: str,
-        preferred_engine: Optional[str] = None
+        preferred_engine: Optional[str] = None,
+        log_file: Optional[str] = None
     ) -> Tuple[ConversionResult, ConversionSession]:
         """
         Attempt conversion with automatic fallback.
@@ -89,6 +92,14 @@ class FallbackHandler:
                     logger.info(
                         f"Successfully converted {input_path} with {engine.name}"
                     )
+
+                    # Log to file if specified
+                    if log_file:
+                        log_path = Path(log_file)
+                        log_path.parent.mkdir(parents=True, exist_ok=True)
+                        with open(log_path, "a") as f:
+                            f.write(json.dumps(session.to_dict()) + "\n")
+
                     return result, session
                 else:
                     logger.warning(
@@ -111,6 +122,14 @@ class FallbackHandler:
             engine=session.attempts[-1].engine if session.attempts else "unknown",
             error=f"All engines failed. Last error: {first_error}"
         )
+
+        # Log to file if specified
+        if log_file:
+            log_path = Path(log_file)
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(log_path, "a") as f:
+                f.write(json.dumps(session.to_dict()) + "\n")
+
         return result, session
 
     def get_best_engine(self, file_path: str) -> Tuple[BaseConverter, float]:

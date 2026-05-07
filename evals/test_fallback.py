@@ -34,6 +34,25 @@ def test_error_template_for_engine():
     assert "install" in template.lower() or "pip" in template.lower()
 
 
+from scripts.converters.errors import ConversionSession, ConversionAttempt
+
+
+def test_fallback_logs_failures():
+    """FallbackHandler logs failed attempts."""
+    session = ConversionSession(file_path="/fake/file.pdf")
+    session.attempts.append(
+        ConversionAttempt(engine="mineru", success=False, error="GPU not available")
+    )
+    session.attempts.append(
+        ConversionAttempt(engine="markitdown", success=True, quality_score=80)
+    )
+    session.final_result = "success"
+    session.final_engine = "markitdown"
+    assert len(session.attempts) == 2
+    assert session.final_result == "success"
+    assert session.final_engine == "markitdown"
+
+
 from scripts.converters.fallback import FallbackHandler
 
 
