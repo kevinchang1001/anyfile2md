@@ -40,6 +40,25 @@ class TestDependencyCheck:
         assert result.returncode == 0, "markitdown not found in PATH"
 
 
+def test_convert_with_engine_flag():
+    """convert.py accepts --engine parameter."""
+    result = subprocess.run(
+        ["python", str(CONVERT_SCRIPT), "--help"],
+        capture_output=True,
+        text=True
+    )
+    assert "--engine" in result.stdout or "-e" in result.stdout
+
+def test_convert_list_engines():
+    """convert.py --list-engines shows available engines."""
+    result = subprocess.run(
+        ["python", str(CONVERT_SCRIPT), "--list-engines"],
+        capture_output=True,
+        text=True
+    )
+    assert "markitdown" in result.stdout.lower()
+
+
 class TestConvertScript:
     """Test single file conversion."""
 

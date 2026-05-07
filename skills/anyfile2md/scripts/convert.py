@@ -35,6 +35,31 @@ except ImportError:
     def get_format_description(ext):
         return ext.upper()
 
+# Import engine registry
+try:
+    from converters import (
+        EngineRegistry,
+        get_default_engine,
+        select_best_engine,
+        BaseConverter,
+        ConversionResult,
+    )
+except ImportError:
+    # Fallback if converters not available
+    EngineRegistry = None
+
+    def get_default_engine():
+        return None
+
+    def select_best_engine(path):
+        return None, 0.0
+
+    class BaseConverter:
+        pass
+
+    class ConversionResult:
+        pass
+
 CONVERSION_TIMEOUT: int = 60  # seconds
 
 
@@ -125,8 +150,47 @@ def main():
         action="store_true",
         help="List all supported formats"
     )
+    parser.add_argument(
+        "-e", "--engine",
+        choices=["markitdown", "mineru", "auto"],
+        default="auto",
+        help="Converter engine: markitdown, mineru, or auto (default)"
+    )
+    parser.add_argument(
+        "--list-engines",
+        action="store_true",
+        help="List available converter engines"
+    )
 
     args = parser.parse_args()
+
+    if args.list_engines:
+        if EngineRegistry is None:
+            print("Engine registry not available")
+        else:
+            registry = EngineRegistry()
+            print("Available engines:")
+            for name in registry.list_engines():
+                print(f"  - {name}")
+        return
+
+    # Select engine based on --engine argument
+    if args.engine == "auto":
+        if EngineRegistry is not None:
+            engine, conf = select_best_engine(args.input or "")
+            if engine:
+                print(f"Auto-selected engine: {engine.name} (confidence: {conf:.2f})")
+    else:
+        if EngineRegistry is not None:
+            registry = EngineRegistry()
+            engine = registry.get_engine(args.engine)
+            if engine is None:
+                print(f"Error: Unknown engine: {args.engine}")
+                sys.exit(1)
+            if not engine.is_available():
+                print(f"Error: Engine '{args.engine}' is not available")
+                sys.exit(1)
+            print(f"Using engine: {args.engine}")
 
     if args.list_formats:
         print("Supported formats:")
