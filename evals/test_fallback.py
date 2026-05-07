@@ -32,3 +32,33 @@ def test_error_template_for_engine():
     template = ErrorTemplate.for_engine("markitdown")
     assert "markitdown" in template
     assert "install" in template.lower() or "pip" in template.lower()
+
+
+from scripts.converters.fallback import FallbackHandler
+
+
+def test_fallback_handler_initialization():
+    """FallbackHandler can be initialized."""
+    handler = FallbackHandler()
+    assert handler is not None
+
+
+def test_fallback_handler_selects_engines():
+    """FallbackHandler gets available engines."""
+    handler = FallbackHandler()
+    engines = handler.get_available_engines()
+    assert isinstance(engines, list)
+    assert len(engines) >= 1
+
+
+def test_fallback_tries_engines_in_order():
+    """FallbackHandler tries engines by confidence order."""
+    handler = FallbackHandler()
+    # Verify engines are sorted by confidence (highest first)
+    engines = handler.get_available_engines()
+    if len(engines) >= 2:
+        # Get confidences for comparison
+        confidences = [e.can_handle("test.pdf") for e in engines]
+        # Verify descending order
+        assert confidences == sorted(confidences, reverse=True), \
+            f"Engines not sorted by confidence: {confidences}"
