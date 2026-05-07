@@ -2,9 +2,7 @@
 """Markitdown converter implementation."""
 
 import subprocess
-import sys
 from pathlib import Path
-from typing import Optional
 
 from .base import BaseConverter, ConversionResult
 
@@ -75,7 +73,7 @@ class MarkitdownConverter(BaseConverter):
                     success=True,
                     output_path=str(output_file),
                     engine=self.name,
-                    quality_score=80  # Default score
+                    quality_score=80,  # Default score; actual quality varies by source format
                 )
             else:
                 return ConversionResult(

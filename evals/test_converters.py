@@ -18,3 +18,18 @@ def test_conversion_result_structure():
     assert result.output_path == "/tmp/out.md"
     assert result.engine == "test"
     assert result.quality_score == 100
+
+
+from scripts.converters.markitdown import MarkitdownConverter
+
+def test_markitdown_converter_properties():
+    """MarkitdownConverter has correct name and priority."""
+    conv = MarkitdownConverter()
+    assert conv.name == "markitdown"
+    assert conv.priority == 10
+
+def test_markitdown_can_handle_pdf():
+    """Markitdown can handle PDF files."""
+    conv = MarkitdownConverter()
+    confidence = conv.can_handle("document.pdf")
+    assert confidence == 0.7
