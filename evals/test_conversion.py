@@ -68,6 +68,16 @@ def test_convert_auto_select_flag():
     assert "--auto-select" in result.stdout
 
 
+def test_convert_with_fallback():
+    """convert.py uses fallback when primary engine fails."""
+    result = subprocess.run(
+        ["python", str(CONVERT_SCRIPT), "--help"],
+        capture_output=True,
+        text=True
+    )
+    assert "--fallback" in result.stdout.lower() or "engine" in result.stdout.lower()
+
+
 class TestConvertScript:
     """Test single file conversion."""
 

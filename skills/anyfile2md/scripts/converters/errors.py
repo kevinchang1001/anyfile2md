@@ -35,7 +35,7 @@ class ConversionError(Exception):
 class ConversionAttempt:
     """Record of a single conversion attempt."""
     engine: str
-    success: bool
+    success: bool = False
     error: Optional[str] = None
     quality_score: int = 0
 

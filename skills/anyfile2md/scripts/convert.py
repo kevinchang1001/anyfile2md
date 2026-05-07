@@ -45,6 +45,8 @@ try:
         ConversionResult,
     )
     from converters.complexity import ComplexityDetector
+    from converters.fallback import FallbackHandler
+    from converters.errors import ConversionSession
 except ImportError:
     # Fallback if converters not available
     EngineRegistry = None
@@ -60,6 +62,9 @@ except ImportError:
 
     class ConversionResult:
         pass
+
+    FallbackHandler = None
+    ConversionSession = None
 
 CONVERSION_TIMEOUT: int = 60  # seconds
 
@@ -179,6 +184,12 @@ def main():
         action="store_true",
         help="Force complexity-based engine selection"
     )
+    parser.add_argument(
+        "--fallback",
+        action="store_true",
+        default=True,
+        help="Enable automatic fallback to other engines on failure (default: enabled)"
+    )
 
     args = parser.parse_args()
 
@@ -242,8 +253,33 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    success = convert_file(args.input, args.output, args.plugins, engine)
-    sys.exit(0 if success else 1)
+    # Use fallback handler for conversion if enabled and available
+    if args.fallback and FallbackHandler is not None and args.input:
+        handler = FallbackHandler()
+
+        result, session = handler.convert_with_fallback(
+            args.input,
+            args.output,
+            preferred_engine=args.engine if args.engine != "auto" else None
+        )
+
+        # Show what happened
+        if len(session.attempts) > 1:
+            print(f"Tried {len(session.attempts)} engines:")
+            for attempt in session.attempts:
+                status = "success" if attempt.success else "failed"
+                print(f"  - {attempt.engine}: {status}")
+
+        if result.success:
+            print(f"Successfully converted: {args.input} -> {args.output}")
+            sys.exit(0)
+        else:
+            print(f"Conversion failed: {result.error}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        # Use single engine without fallback (existing logic)
+        success = convert_file(args.input, args.output, args.plugins, engine)
+        sys.exit(0 if success else 1)
 
 
 if __name__ == "__main__":
