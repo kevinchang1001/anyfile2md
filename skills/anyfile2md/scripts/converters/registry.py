@@ -28,7 +28,7 @@ class EngineRegistry:
         """Register all available engines."""
         self._engines = [
             MarkitdownConverter(),
-            # MineruConverter(),  # Disabled until implemented
+            MineruConverter(),  # Now has real implementation
         ]
 
     def get_engine(self, name: str) -> Optional[BaseConverter]:
@@ -51,7 +51,7 @@ class EngineRegistry:
             if not engine.is_available():
                 continue
             confidence = engine.can_handle(file_path)
-            # Use priority as tiebreaker
+            # Use priority as tiebreaker for selection
             effective_score = confidence * 100 - engine.priority
             if effective_score > best_confidence:
                 best_confidence = effective_score
@@ -62,7 +62,10 @@ class EngineRegistry:
             best_engine = MarkitdownConverter()
             best_confidence = 0.0
 
-        return best_engine, best_confidence
+        # Return actual confidence, not effective_score
+        # (effective_score was only used for engine selection comparison)
+        actual_confidence = best_engine.can_handle(file_path)
+        return best_engine, actual_confidence
 
     def list_engines(self) -> list[str]:
         """List all registered engine names."""
