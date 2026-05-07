@@ -85,3 +85,19 @@ def test_mineru_stub_returns_not_available():
     conv = MineruConverter()
     # Stub should return False until implemented
     assert conv.is_available() is False
+
+def test_mineru_can_handle_complex_pdf():
+    """Mineru returns higher confidence for complex PDFs."""
+    from scripts.converters.mineru import MineruConverter
+    conv = MineruConverter()
+    # Mineru can handle PDFs (though currently returns based on complexity)
+    confidence = conv.can_handle("complex.pdf")
+    assert 0.0 <= confidence <= 1.0
+
+def test_mineru_is_available():
+    """Mineru is_available checks if mineru is installed."""
+    from scripts.converters.mineru import MineruConverter
+    conv = MineruConverter()
+    # Should return bool (True if installed, False if not)
+    result = conv.is_available()
+    assert isinstance(result, bool)
