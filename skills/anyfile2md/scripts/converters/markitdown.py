@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 from .base import BaseConverter, ConversionResult
+from .complexity import ComplexityDetector
 
 MARKITDOWN_TIMEOUT = 60
 
@@ -30,20 +31,38 @@ class MarkitdownConverter(BaseConverter):
 
     def can_handle(self, file_path: str) -> float:
         """
-        Markitdown handles common formats well.
-        Returns confidence based on file extension.
+        Return confidence (0.0-1.0) based on file extension and complexity.
         """
         ext = Path(file_path).suffix.lower()
-        common_formats = {
-            '.md', '.txt', '.csv', '.json', '.xml', '.yaml', '.yml',
-            '.html', '.htm', '.docx', '.xlsx', '.pptx',
-            '.rtf', '.epub', '.ipynb'
-        }
-        if ext in common_formats:
-            return 0.9
-        if ext == '.pdf':
-            return 0.7  # PDF works but may have issues
-        return 0.0
+
+        # Not a PDF - use extension-based confidence
+        if ext != '.pdf':
+            common_formats = {
+                '.md', '.txt', '.csv', '.json', '.xml', '.yaml', '.yml',
+                '.html', '.htm', '.docx', '.xlsx', '.pptx',
+                '.rtf', '.epub', '.ipynb'
+            }
+            if ext in common_formats:
+                return 0.9
+            return 0.0
+
+        # PDF - use complexity detection
+        try:
+            detector = ComplexityDetector()
+            result = detector.analyze(file_path)
+
+            # Simple PDFs (score 0-3) - markitdown handles well
+            if result.score <= 3:
+                return 0.8
+            # Medium complexity (score 4-7) - markitdown may struggle
+            elif result.score <= 7:
+                return 0.4
+            # High complexity (score 8+) - markitdown not recommended
+            else:
+                return 0.2
+        except Exception:
+            # If complexity detection fails, assume simple
+            return 0.5
 
     def convert(self, input_path: str, output_path: str) -> ConversionResult:
         """Convert file using markitdown CLI."""

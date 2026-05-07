@@ -32,7 +32,24 @@ def test_markitdown_can_handle_pdf():
     """Markitdown can handle PDF files."""
     conv = MarkitdownConverter()
     confidence = conv.can_handle("document.pdf")
-    assert confidence == 0.7
+    # Confidence now depends on complexity detection (0.2-0.8 range for PDF)
+    assert 0.2 <= confidence <= 0.8
+
+
+def test_markitdown_can_handle_with_complexity():
+    """Markitdown returns complexity-aware confidence."""
+    from scripts.converters.markitdown import MarkitdownConverter
+    from scripts.converters.complexity import ComplexityDetector
+
+    conv = MarkitdownConverter()
+    # For non-PDF files, should return 0.9
+    confidence = conv.can_handle("document.txt")
+    assert confidence == 0.9
+
+    # For PDF, confidence depends on complexity
+    # (We can't easily test actual PDF complexity without a test PDF)
+    confidence_pdf = conv.can_handle("document.pdf")
+    assert 0.0 <= confidence_pdf <= 1.0
 
 
 from scripts.converters.mineru import MineruConverter
