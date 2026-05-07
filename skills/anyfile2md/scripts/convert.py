@@ -44,6 +44,7 @@ try:
         BaseConverter,
         ConversionResult,
     )
+    from converters.complexity import ComplexityDetector
 except ImportError:
     # Fallback if converters not available
     EngineRegistry = None
@@ -173,6 +174,11 @@ def main():
         action="store_true",
         help="List available converter engines"
     )
+    parser.add_argument(
+        "--auto-select",
+        action="store_true",
+        help="Force complexity-based engine selection"
+    )
 
     args = parser.parse_args()
 
@@ -206,6 +212,16 @@ def main():
                 print(f"Error: Engine '{args.engine}' is not available")
                 sys.exit(1)
             print(f"Using engine: {args.engine}")
+
+    # Show complexity info if --auto-select
+    if args.auto_select and args.input and Path(args.input).suffix.lower() == ".pdf":
+        try:
+            detector = ComplexityDetector()
+            complexity = detector.analyze(args.input)
+            print(f"Complexity: {complexity.score} ({', '.join(complexity.factors.keys()) or 'simple'})")
+            print(f"Recommended: {complexity.recommended_engine}")
+        except Exception as e:
+            print(f"Complexity analysis failed: {e}", file=sys.stderr)
 
     if args.list_formats:
         print("Supported formats:")

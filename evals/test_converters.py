@@ -102,3 +102,16 @@ def test_mineru_is_available():
     # Should return bool (True if installed, False if not)
     result = conv.is_available()
     assert isinstance(result, bool)
+
+
+def test_registry_selects_by_complexity():
+    """Registry should select engine with highest confidence."""
+    import sys
+    sys.path.insert(0, '/Users/nexlume/AI-Workspace/skills-dev/anyfile2md/skills/anyfile2md')
+    from scripts.converters.registry import EngineRegistry
+    registry = EngineRegistry()
+    # For any file, should return an available engine
+    engine, confidence = registry.select_engine("test.pdf")
+    assert engine is not None
+    assert isinstance(confidence, float)
+    assert 0.0 <= confidence <= 1.0

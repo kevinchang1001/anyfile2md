@@ -58,6 +58,15 @@ def test_convert_list_engines():
     )
     assert "markitdown" in result.stdout.lower()
 
+def test_convert_auto_select_flag():
+    """convert.py accepts --auto-select parameter."""
+    result = subprocess.run(
+        ["python", str(CONVERT_SCRIPT), "--help"],
+        capture_output=True,
+        text=True
+    )
+    assert "--auto-select" in result.stdout
+
 
 class TestConvertScript:
     """Test single file conversion."""
