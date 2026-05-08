@@ -122,7 +122,7 @@ class TestDetectScanned:
         mock_page.get_text.return_value = "   "  # Minimal whitespace
 
         mock_doc = MagicMock()
-        mock_doc.__getitem__ = Mock(side_effect=lambda i: [mock_page, mock_page])
+        mock_doc.__getitem__ = Mock(side_effect=lambda i: mock_page if isinstance(i, int) else [mock_page, mock_page])
         mock_doc.__iter__ = Mock(return_value=iter([mock_page, mock_page]))
         mock_doc.__len__ = Mock(return_value=2)
 
@@ -137,7 +137,7 @@ class TestDetectScanned:
         mock_page.get_text.return_value = "This is a substantial amount of text that exceeds fifty characters."
 
         mock_doc = MagicMock()
-        mock_doc.__getitem__ = Mock(side_effect=lambda i: [mock_page, mock_page])
+        mock_doc.__getitem__ = Mock(side_effect=lambda i: mock_page if isinstance(i, int) else [mock_page, mock_page])
         mock_doc.__iter__ = Mock(return_value=iter([mock_page, mock_page]))
         mock_doc.__len__ = Mock(return_value=2)
 
@@ -152,7 +152,7 @@ class TestDetectScanned:
         mock_page.get_text.return_value = "Normal text content"
 
         mock_doc = MagicMock()
-        mock_doc.__getitem__ = Mock(side_effect=lambda i: [mock_page, mock_page])
+        mock_doc.__getitem__ = Mock(side_effect=lambda i: mock_page if isinstance(i, int) else [mock_page, mock_page])
         mock_doc.__iter__ = Mock(return_value=iter([mock_page, mock_page]))
         mock_doc.__len__ = Mock(return_value=2)
 
@@ -167,17 +167,15 @@ class TestDetectMultiColumn:
         detector = ComplexityDetector()
 
         mock_page = Mock()
-        # Need at least 3 blocks for the check to trigger, with 2+ distinct x positions
-        mock_page.get_text = Mock(return_value={
-            "blocks": [
-                {"lines": [{"spans": [{"bbox": (50, 0, 200, 20)}]}]},
-                {"lines": [{"spans": [{"bbox": (60, 10, 210, 30)}]}]},  # Same column (~0)
-                {"lines": [{"spans": [{"bbox": (350, 0, 500, 20)}]}]}  # Different column (~3)
-            ]
-        })
+        # PyMuPDF get_text("blocks") returns list of tuples: (x0, y0, x1, y1, text, block_no, block_type)
+        mock_page.get_text = Mock(return_value=[
+            (50, 0, 200, 20, "Column 1 text", 0, 0),   # x=50
+            (60, 10, 210, 30, "Column 1 text", 1, 0),  # x=60 (same column)
+            (350, 0, 500, 20, "Column 2 text", 2, 0)   # x=350 (different column)
+        ])
 
         mock_doc = MagicMock()
-        mock_doc.__getitem__ = Mock(side_effect=lambda i: [mock_page, mock_page])
+        mock_doc.__getitem__ = Mock(side_effect=lambda i: mock_page if isinstance(i, int) else [mock_page, mock_page])
         mock_doc.__iter__ = Mock(return_value=iter([mock_page, mock_page]))
         mock_doc.__len__ = Mock(return_value=2)
 
@@ -188,13 +186,11 @@ class TestDetectMultiColumn:
         detector = ComplexityDetector()
 
         mock_page = Mock()
-        mock_page.get_text = Mock(return_value={
-            "blocks": [
-                {"lines": [{"spans": [{"bbox": (100, 0, 300, 20)}]}]},
-                {"lines": [{"spans": [{"bbox": (110, 10, 310, 30)}]}]},
-                {"lines": [{"spans": [{"bbox": (105, 20, 305, 40)}]}]}
-            ]
-        })
+        mock_page.get_text = Mock(return_value=[
+            (100, 0, 300, 20, "Text line 1", 0, 0),
+            (110, 10, 310, 30, "Text line 2", 1, 0),
+            (105, 20, 305, 40, "Text line 3", 2, 0)
+        ])
 
         mock_doc = MagicMock()
         mock_doc.__getitem__ = Mock(side_effect=lambda i: [mock_page])
@@ -208,9 +204,9 @@ class TestDetectMultiColumn:
         detector = ComplexityDetector()
 
         mock_page = Mock()
-        mock_page.get_text = Mock(return_value={
-            "blocks": []
-        })
+        mock_page.get_text = Mock(return_value=[
+            (100, 0, 300, 20, "Only one block", 0, 0)
+        ])
 
         mock_doc = MagicMock()
         mock_doc.__getitem__ = Mock(side_effect=lambda i: [mock_page])
@@ -234,7 +230,7 @@ class TestDetectTables:
         mock_page.find_tables.return_value = mock_table
 
         mock_doc = MagicMock()
-        mock_doc.__getitem__ = Mock(side_effect=lambda i: [mock_page, mock_page])
+        mock_doc.__getitem__ = Mock(side_effect=lambda i: mock_page if isinstance(i, int) else [mock_page, mock_page])
         mock_doc.__iter__ = Mock(return_value=iter([mock_page, mock_page]))
         mock_doc.__len__ = Mock(return_value=2)
 
@@ -251,7 +247,7 @@ class TestDetectTables:
         mock_page.find_tables.return_value = mock_table
 
         mock_doc = MagicMock()
-        mock_doc.__getitem__ = Mock(side_effect=lambda i: [mock_page, mock_page])
+        mock_doc.__getitem__ = Mock(side_effect=lambda i: mock_page if isinstance(i, int) else [mock_page, mock_page])
         mock_doc.__iter__ = Mock(return_value=iter([mock_page, mock_page]))
         mock_doc.__len__ = Mock(return_value=2)
 

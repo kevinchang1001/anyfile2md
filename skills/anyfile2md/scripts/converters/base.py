@@ -79,7 +79,7 @@ class BaseConverter(ABC):
             detector = self._detector or get_detector()
             result = detector.analyze(file_path)
             elapsed = time.time() - start_time
-            if elapsed > 0.1:  # Log if > 100ms
+            if elapsed > 0.01:  # Log if > 10ms
                 logger.debug(f"Complexity analysis: {elapsed:.3f}s for {file_path}")
             return self._get_confidence(result.score)
         except Exception:

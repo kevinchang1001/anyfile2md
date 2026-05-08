@@ -175,34 +175,41 @@ class ComplexityDetector:
         return False
 
     def _detect_multi_column(self, doc) -> bool:
-        """Detect multi-column layout by analyzing text block positions."""
-        for page in doc[:3]:  # Check first 3 pages
-            blocks = page.get_text("dict")["blocks"]
-            if len(blocks) < 3:
-                continue
+        """Detect multi-column layout by analyzing text block positions.
 
-            # Get x coordinates of text blocks
-            x_coords = []
-            for block in blocks:
-                if "lines" in block:
-                    for line in block["lines"]:
-                        for span in line["spans"]:
-                            x0 = span["bbox"][0]
-                            x_coords.append(x0)
+        Optimized: uses "blocks" instead of "dict" and samples only page 0.
+        """
+        if len(doc) == 0:
+            return False
 
-            if len(x_coords) < 3:
-                continue
+        # Only check first page for speed (first page is usually representative)
+        page = doc[0]
+        try:
+            blocks = page.get_text("blocks")
+        except Exception:
+            return False
 
-            # Check for distinct column positions
-            # If text appears in significantly different x positions, likely multi-column
-            x_set = set()
-            for x in x_coords:
-                # Group by ~100px buckets
-                x_set.add(int(x / 100))
+        if len(blocks) < 3:
+            return False
 
-            if len(x_set) >= 2:
-                return True
-        return False
+        # Get x coordinates of text blocks
+        x_coords = []
+        for block in blocks:
+            if isinstance(block, (list, tuple)) and len(block) >= 4:
+                x0 = block[0]
+                x_coords.append(x0)
+
+        if len(x_coords) < 3:
+            return False
+
+        # Check for distinct column positions
+        # If text appears in significantly different x positions, likely multi-column
+        x_set = set()
+        for x in x_coords:
+            # Group by ~100px buckets
+            x_set.add(int(x / 100))
+
+        return len(x_set) >= 2
 
     def _detect_tables(self, doc) -> bool:
         """Detect tables by looking for structured grid patterns."""
