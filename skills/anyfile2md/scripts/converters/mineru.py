@@ -6,6 +6,9 @@ from pathlib import Path
 from .base import BaseConverter, ConversionResult
 from .confidence import mineru_confidence
 
+# Module-level cache for availability check
+_mineru_available = None
+
 
 class MineruConverter(BaseConverter):
     """
@@ -29,15 +32,21 @@ class MineruConverter(BaseConverter):
         """MinerU has lower priority than markitdown."""
         return 20
 
+    def __init__(self, detector=None):
+        super().__init__(detector)
+
     def is_available(self) -> bool:
         """
-        Check if MinerU is installed and API functions are available.
+        Check if MinerU is installed and API functions are available (cached).
         """
-        try:
-            from mineru.cli.common import do_parse, read_fn
-            return True
-        except ImportError:
-            return False
+        global _mineru_available
+        if _mineru_available is None:
+            try:
+                from mineru.cli.common import do_parse, read_fn
+                _mineru_available = True
+            except ImportError:
+                _mineru_available = False
+        return _mineru_available
 
     def can_handle(self, file_path: str) -> float:
         """

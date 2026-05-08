@@ -9,6 +9,9 @@ from .confidence import markitdown_confidence
 
 MARKITDOWN_TIMEOUT = 60
 
+# Module-level cache for availability check
+_markitdown_available = None
+
 
 class MarkitdownConverter(BaseConverter):
     """Converter using markitdown CLI."""
@@ -22,12 +25,18 @@ class MarkitdownConverter(BaseConverter):
         """Markitdown has higher priority (lower number)."""
         return 10
 
+    def __init__(self, detector=None):
+        super().__init__(detector)
+
     def is_available(self) -> bool:
-        """Check if markitdown is installed."""
-        return subprocess.run(
-            ["which", "markitdown"],
-            capture_output=True
-        ).returncode == 0
+        """Check if markitdown is installed (cached)."""
+        global _markitdown_available
+        if _markitdown_available is None:
+            _markitdown_available = subprocess.run(
+                ["which", "markitdown"],
+                capture_output=True
+            ).returncode == 0
+        return _markitdown_available
 
     def can_handle(self, file_path: str) -> float:
         """

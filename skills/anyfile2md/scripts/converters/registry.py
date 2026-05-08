@@ -7,6 +7,9 @@ from .base import BaseConverter
 from .markitdown import MarkitdownConverter
 from .mineru import MineruConverter
 
+# Module-level singleton instance
+_registry: Optional["EngineRegistry"] = None
+
 
 class EngineRegistry:
     """
@@ -15,21 +18,23 @@ class EngineRegistry:
     Singleton pattern ensures consistent engine selection.
     """
 
-    _instance: Optional["EngineRegistry"] = None
-    _engines: list[BaseConverter] = []
+    def __new__(cls, detector=None) -> "EngineRegistry":
+        global _registry
+        if _registry is None:
+            instance = super().__new__(cls)
+            # Initialize engines as instance variable
+            instance._engines = [
+                MarkitdownConverter(detector),
+                MineruConverter(detector),
+            ]
+            _registry = instance
+        return _registry
 
-    def __new__(cls) -> "EngineRegistry":
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialize_engines()
-        return cls._instance
-
-    def _initialize_engines(self) -> None:
-        """Register all available engines."""
-        self._engines = [
-            MarkitdownConverter(),
-            MineruConverter(),  # Now has real implementation
-        ]
+    def __init__(self, detector=None):
+        """Initialize registry - singleton guard prevents re-init."""
+        # Guard against re-initialization
+        if not hasattr(self, '_engines'):
+            return
 
     def get_engine(self, name: str) -> Optional[BaseConverter]:
         """Get engine by name."""
@@ -79,6 +84,18 @@ class EngineRegistry:
         return [e for e in self._engines if e.is_available()]
 
 
+# Module-level singleton instance
+_registry: Optional[EngineRegistry] = None
+
+
+def get_registry(detector=None) -> EngineRegistry:
+    """Get or create the singleton registry."""
+    global _registry
+    if _registry is None:
+        _registry = EngineRegistry(detector)
+    return _registry
+
+
 # Module-level convenience function
 def get_default_engine() -> BaseConverter:
     """Get the default engine (markitdown)."""
@@ -87,4 +104,4 @@ def get_default_engine() -> BaseConverter:
 
 def select_best_engine(file_path: str) -> Tuple[BaseConverter, float]:
     """Select best engine for file."""
-    return EngineRegistry().select_engine(file_path)
+    return get_registry().select_engine(file_path)

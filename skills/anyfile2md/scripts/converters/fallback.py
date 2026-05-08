@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 
 from .base import BaseConverter, ConversionResult
 from .errors import ConversionSession, ConversionAttempt
-from .registry import EngineRegistry
+from .registry import EngineRegistry, get_registry
 
 
 logger = logging.getLogger(__name__)
@@ -31,11 +31,89 @@ class FallbackHandler:
             max_attempts: Maximum number of engines to try (default: 2)
         """
         self.max_attempts = max_attempts
-        self.registry = registry or EngineRegistry()
+        self.registry = registry or get_registry()
 
     def get_available_engines(self) -> list[BaseConverter]:
         """Get all available engines (unsorted, sorting happens in convert_with_fallback)."""
         return self.registry.get_available_engines()
+
+    def _get_sorted_engines(
+        self,
+        input_path: str,
+        preferred_engine: Optional[str] = None
+    ) -> list[BaseConverter]:
+        """
+        Get engines sorted by confidence, with preferred engine at front if specified.
+
+        Args:
+            input_path: File path for confidence evaluation
+            preferred_engine: Optional engine name to prioritize
+
+        Returns:
+            Sorted list of engines
+        """
+        engines = self.get_available_engines()
+        if not engines:
+            return []
+
+        # Sort engines by confidence for this file
+        def get_confidence(engine: BaseConverter) -> float:
+            return engine.can_handle(input_path)
+
+        engines = sorted(engines, key=get_confidence, reverse=True)
+
+        # If preferred_engine is specified, move it to the front
+        if preferred_engine:
+            preferred = self.registry.get_engine(preferred_engine)
+            if preferred and preferred.is_available() and preferred in engines:
+                engines.remove(preferred)
+                engines.insert(0, preferred)
+                logger.info(f"Preferred engine '{preferred_engine}' moved to front")
+
+        return engines
+
+    def _attempt_conversion(
+        self,
+        engine: BaseConverter,
+        input_path: str,
+        output_path: str
+    ) -> Tuple[ConversionAttempt, ConversionResult]:
+        """
+        Attempt conversion with a single engine.
+
+        Args:
+            engine: Converter engine to use
+            input_path: Input file path
+            output_path: Output file path
+
+        Returns:
+            Tuple of (ConversionAttempt, ConversionResult)
+        """
+        attempt = ConversionAttempt(engine=engine.name)
+
+        try:
+            result = engine.convert(input_path, output_path)
+            attempt.success = result.success
+            attempt.error = result.error
+            attempt.quality_score = result.quality_score
+            return attempt, result
+
+        except Exception as e:
+            attempt.success = False
+            attempt.error = str(e)
+            result = ConversionResult(
+                success=False,
+                engine=engine.name,
+                error=str(e)
+            )
+            return attempt, result
+
+    def _write_log(self, session: ConversionSession, log_file: str) -> None:
+        """Write session to log file."""
+        log_path = Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "a") as f:
+            f.write(json.dumps(session.to_dict()) + "\n")
 
     def convert_with_fallback(
         self,
@@ -58,7 +136,7 @@ class FallbackHandler:
             contains the full attempt history.
         """
         session = ConversionSession(file_path=input_path)
-        engines = self.get_available_engines()
+        engines = self._get_sorted_engines(input_path, preferred_engine)
 
         if not engines:
             result = ConversionResult(
@@ -69,51 +147,22 @@ class FallbackHandler:
             session.final_result = "failed"
             return result, session
 
-        # Sort engines by confidence for this file
-        def get_confidence(engine: BaseConverter) -> float:
-            return engine.can_handle(input_path)
-
-        engines = sorted(engines, key=get_confidence, reverse=True)
-
         # Try each engine in order
         for engine in engines[:self.max_attempts]:
-            attempt = ConversionAttempt(engine=engine.name)
+            attempt, result = self._attempt_conversion(engine, input_path, output_path)
+            session.attempts.append(attempt)
 
-            try:
-                result = engine.convert(input_path, output_path)
-                attempt.success = result.success
-                attempt.error = result.error
-                attempt.quality_score = result.quality_score
+            if result.success:
+                session.final_result = "success"
+                session.final_engine = engine.name
+                logger.info(
+                    f"Successfully converted {input_path} with {engine.name}"
+                )
+                if log_file:
+                    self._write_log(session, log_file)
+                return result, session
 
-                session.attempts.append(attempt)
-
-                if result.success:
-                    session.final_result = "success"
-                    session.final_engine = engine.name
-                    logger.info(
-                        f"Successfully converted {input_path} with {engine.name}"
-                    )
-
-                    # Log to file if specified
-                    if log_file:
-                        log_path = Path(log_file)
-                        log_path.parent.mkdir(parents=True, exist_ok=True)
-                        with open(log_path, "a") as f:
-                            f.write(json.dumps(session.to_dict()) + "\n")
-
-                    return result, session
-                else:
-                    logger.warning(
-                        f"Engine {engine.name} failed: {result.error}"
-                    )
-                    # Continue to next engine
-
-            except Exception as e:
-                attempt.success = False
-                attempt.error = str(e)
-                session.attempts.append(attempt)
-                logger.warning(f"Engine {engine.name} raised exception: {e}")
-                continue
+            logger.warning(f"Engine {engine.name} failed: {result.error}")
 
         # All engines failed
         session.final_result = "failed"
@@ -124,12 +173,8 @@ class FallbackHandler:
             error=f"All engines failed. Last error: {first_error}"
         )
 
-        # Log to file if specified
         if log_file:
-            log_path = Path(log_file)
-            log_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(log_path, "a") as f:
-                f.write(json.dumps(session.to_dict()) + "\n")
+            self._write_log(session, log_file)
 
         return result, session
 

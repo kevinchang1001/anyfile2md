@@ -35,17 +35,28 @@ class ConversionResult:
 class BaseConverter(ABC):
     """Abstract base class for file converters."""
 
-    # Class-level detector for dependency injection and caching
-    _detector = None
+    def __init__(self, detector=None):
+        """
+        Initialize converter with optional detector injection.
+
+        Args:
+            detector: A ComplexityDetector instance for complexity analysis.
+                     If None, uses the global detector.
+        """
+        self._detector = detector
 
     @classmethod
     def set_detector(cls, detector):
         """
+        DEPRECATED: Use constructor injection instead.
+
         Set the class-level detector for testing injection.
 
         Args:
             detector: A ComplexityDetector instance, or None to reset
         """
+        # For backward compatibility, set on all existing instances
+        # but prefer instance-level _detector
         cls._detector = detector
 
     @property
