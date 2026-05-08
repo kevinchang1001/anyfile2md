@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .base import BaseConverter, ConversionResult
 from .complexity import ComplexityDetector
+from .confidence import markitdown_confidence
 
 MARKITDOWN_TIMEOUT = 60
 
@@ -51,15 +52,8 @@ class MarkitdownConverter(BaseConverter):
             detector = ComplexityDetector()
             result = detector.analyze(file_path)
 
-            # Simple PDFs (score 0-3) - markitdown handles well
-            if result.score <= 3:
-                return 0.8
-            # Medium complexity (score 4-7) - markitdown may struggle
-            elif result.score <= 7:
-                return 0.4
-            # High complexity (score 8+) - markitdown not recommended
-            else:
-                return 0.2
+            # Use centralized confidence mapping
+            return markitdown_confidence(result.score)
         except Exception:
             # If complexity detection fails, assume simple
             return 0.5

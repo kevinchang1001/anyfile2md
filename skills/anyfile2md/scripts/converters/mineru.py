@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .base import BaseConverter, ConversionResult
 from .complexity import ComplexityDetector
+from .confidence import mineru_confidence
 
 
 class MineruConverter(BaseConverter):
@@ -52,15 +53,8 @@ class MineruConverter(BaseConverter):
             detector = ComplexityDetector()
             result = detector.analyze(file_path)
 
-            # High complexity (score 8+) - MinerU recommended
-            if result.score >= 8:
-                return 0.9
-            # Medium complexity (score 4-7) - MinerU viable
-            elif result.score >= 4:
-                return 0.5
-            # Simple (score 0-3) - MinerU overkill
-            else:
-                return 0.3
+            # Use centralized confidence mapping
+            return mineru_confidence(result.score)
         except Exception:
             return 0.0
 
