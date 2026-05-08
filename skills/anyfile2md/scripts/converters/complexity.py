@@ -233,3 +233,20 @@ class ComplexityDetector:
         if total_chars == 0:
             return 1.0
         return chinese_chars / total_chars
+
+
+# Module-level lazy singleton for ComplexityDetector
+_detector: Optional[ComplexityDetector] = None
+
+
+def get_detector() -> ComplexityDetector:
+    """
+    Get the global ComplexityDetector instance.
+
+    Uses lazy initialization - the detector is only created when first accessed.
+    This avoids importing PyMuPDF until actually needed.
+    """
+    global _detector
+    if _detector is None:
+        _detector = ComplexityDetector()
+    return _detector

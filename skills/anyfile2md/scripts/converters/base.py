@@ -7,9 +7,10 @@ from pathlib import Path
 from typing import Optional
 
 try:
-    from .complexity import ComplexityDetector
+    from .complexity import ComplexityDetector, get_detector
 except ImportError:
     ComplexityDetector = None
+    get_detector = None
 
 
 @dataclass
@@ -29,6 +30,19 @@ class ConversionResult:
 
 class BaseConverter(ABC):
     """Abstract base class for file converters."""
+
+    # Class-level detector for dependency injection and caching
+    _detector = None
+
+    @classmethod
+    def set_detector(cls, detector):
+        """
+        Set the class-level detector for testing injection.
+
+        Args:
+            detector: A ComplexityDetector instance, or None to reset
+        """
+        cls._detector = detector
 
     @property
     @abstractmethod
@@ -53,11 +67,11 @@ class BaseConverter(ABC):
             # Non-PDF files: use extension-based confidence
             return 0.0
 
-        if ComplexityDetector is None:
+        if ComplexityDetector is None or get_detector is None:
             return 0.5
 
         try:
-            detector = ComplexityDetector()
+            detector = self._detector or get_detector()
             result = detector.analyze(file_path)
             return self._get_confidence(result.score)
         except Exception:
