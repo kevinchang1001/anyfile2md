@@ -69,9 +69,7 @@ class MineruConverter(BaseConverter):
             return 0.0
 
     def convert(self, input_path: str, output_path: str) -> ConversionResult:
-        """
-        Convert file using MinerU.
-        """
+        """Convert file using MinerU do_parse API."""
         input_file = Path(input_path)
         output_file = Path(output_path)
 
@@ -92,44 +90,80 @@ class MineruConverter(BaseConverter):
         try:
             output_file.parent.mkdir(parents=True, exist_ok=True)
 
-            # MinerU Python API - simplified call
-            cmd = [
-                "python", "-c",
-                f"from mineru import convert; convert('{input_file}', '{output_file}')"
-            ]
+            # Import MinerU functions
+            from mineru.cli.common import do_parse, read_fn
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=self.MINERU_TIMEOUT
-            )
+            # Read PDF bytes
+            pdf_bytes = read_fn(input_file)
 
-            if result.returncode == 0:
-                return ConversionResult(
-                    success=True,
-                    output_path=str(output_file),
-                    engine=self.name,
-                    quality_score=90
+            # Determine backend based on GPU availability
+            backend = self._detect_backend()
+
+            # Language hint (Chinese document by default for电力行业)
+            lang = self._detect_language(input_path)
+
+            # Create temp output directory (MinerU writes to {output_dir}/{name}/auto/)
+            import tempfile
+            with tempfile.TemporaryDirectory() as tmp_output:
+                # Call MinerU API
+                do_parse(
+                    output_dir=tmp_output,
+                    pdf_file_names=[input_file.stem],
+                    pdf_bytes_list=[pdf_bytes],
+                    p_lang_list=[lang],
+                    backend=backend,
+                    parse_method="auto",
+                    formula_enable=True,
+                    table_enable=True,
+                    f_dump_md=True,
+                    f_dump_content_list=False,
+                    f_dump_middle_json=False,
+                    f_dump_model_output=False,
+                    f_dump_orig_pdf=False,
                 )
-            else:
-                # MinerU API may differ - provide helpful error
-                error_msg = result.stderr if result.stderr else "Unknown error"
-                return ConversionResult(
-                    success=False,
-                    engine=self.name,
-                    error=f"MinerU API error: {error_msg}. Note: MinerU integration requires Phase 4 implementation."
-                )
 
-        except subprocess.TimeoutExpired:
-            return ConversionResult(
-                success=False,
-                engine=self.name,
-                error=f"Conversion timeout ({self.MINERU_TIMEOUT}s)"
-            )
+                # Read generated markdown
+                md_path = Path(tmp_output) / input_file.stem / "auto" / f"{input_file.stem}.md"
+                if md_path.exists():
+                    md_content = md_path.read_text(encoding='utf-8')
+                    # Write to final output
+                    output_file.write_text(md_content, encoding='utf-8')
+
+                    return ConversionResult(
+                        success=True,
+                        output_path=str(output_file),
+                        engine=self.name,
+                        quality_score=90
+                    )
+                else:
+                    return ConversionResult(
+                        success=False,
+                        engine=self.name,
+                        error=f"MinerU output not found at {md_path}"
+                    )
+
         except Exception as e:
             return ConversionResult(
                 success=False,
                 engine=self.name,
                 error=str(e)
             )
+
+    def _detect_backend(self) -> str:
+        """Detect GPU availability and return appropriate backend."""
+        try:
+            result = subprocess.run(
+                ["nvidia-smi", "-L"],
+                capture_output=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return "hybrid-auto-engine"  # GPU available
+        except Exception:
+            pass
+        return "pipeline"  # CPU fallback
+
+    def _detect_language(self, file_path: str) -> str:
+        """Detect document language based on file path hints."""
+        # Default to Chinese for电力行业 documents
+        return "ch"
