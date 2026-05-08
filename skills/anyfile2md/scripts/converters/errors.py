@@ -91,6 +91,27 @@ class ErrorTemplate:
         }
         return templates.get(engine_name, f"Unknown engine: {engine_name}")
 
+
+class MineruError(ConversionError):
+    """
+    Error specific to MinerU conversion failures.
+
+    Provides GPU/CPU specific solutions.
+    """
+
+    def __init__(self, reason: str, solutions: Optional[list[str]] = None):
+        default_solutions = [
+            "Check GPU availability with: nvidia-smi",
+            "Install CUDA drivers if not available",
+            "Set environment variable USE_GPU=0 for CPU mode"
+        ]
+        super().__init__(
+            engine="mineru",
+            reason=reason,
+            solutions=solutions or default_solutions
+        )
+
+
     @staticmethod
     def for_error(error_msg: str) -> list[str]:
         """Suggest solutions based on error message."""
