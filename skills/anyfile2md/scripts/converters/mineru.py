@@ -31,16 +31,12 @@ class MineruConverter(BaseConverter):
 
     def is_available(self) -> bool:
         """
-        Check if MinerU is installed and available.
+        Check if MinerU is installed and API functions are available.
         """
         try:
-            result = subprocess.run(
-                ["python", "-c", "import mineru"],
-                capture_output=True,
-                timeout=10
-            )
-            return result.returncode == 0
-        except Exception:
+            from mineru.cli.common import do_parse, read_fn
+            return True
+        except ImportError:
             return False
 
     def can_handle(self, file_path: str) -> float:
