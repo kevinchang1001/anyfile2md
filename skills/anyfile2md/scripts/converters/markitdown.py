@@ -77,6 +77,19 @@ class MarkitdownConverter(BaseConverter):
             )
 
             if result.returncode == 0:
+                # Verify output file exists and has content
+                if not output_file.exists():
+                    return ConversionResult(
+                        success=False,
+                        engine=self.name,
+                        error=f"Output file not created: {output_file}"
+                    )
+                if output_file.stat().st_size == 0:
+                    return ConversionResult(
+                        success=False,
+                        engine=self.name,
+                        error="Output file is empty (0 bytes)"
+                    )
                 return ConversionResult(
                     success=True,
                     output_path=str(output_file),

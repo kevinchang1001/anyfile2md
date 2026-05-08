@@ -110,9 +110,24 @@ class MineruConverter(BaseConverter):
                 )
 
                 # Read generated markdown
-                md_path = Path(tmp_output) / input_file.stem / "auto" / f"{input_file.stem}.md"
-                if md_path.exists():
+                # Try both "auto" (pipeline) and "hybrid_auto" (hybrid-auto-engine) paths
+                stem_dir = Path(tmp_output) / input_file.stem
+                md_path = None
+                for subdir in ["auto", "hybrid_auto"]:
+                    candidate = stem_dir / subdir / f"{input_file.stem}.md"
+                    if candidate.exists():
+                        md_path = candidate
+                        break
+
+                if md_path and md_path.exists():
                     md_content = md_path.read_text(encoding='utf-8')
+                    # Verify content is not empty
+                    if len(md_content.strip()) == 0:
+                        return ConversionResult(
+                            success=False,
+                            engine=self.name,
+                            error=f"MinerU output is empty: {md_path}"
+                        )
                     # Write to final output
                     output_file.write_text(md_content, encoding='utf-8')
 
@@ -126,7 +141,7 @@ class MineruConverter(BaseConverter):
                     return ConversionResult(
                         success=False,
                         engine=self.name,
-                        error=f"MinerU output not found at {md_path}"
+                        error=f"MinerU output not found. Tried: auto, hybrid_auto in {stem_dir}"
                     )
 
         except Exception as e:
@@ -138,6 +153,7 @@ class MineruConverter(BaseConverter):
 
     def _detect_backend(self) -> str:
         """Detect GPU availability and return appropriate backend."""
+        # Check for NVIDIA GPU
         try:
             result = subprocess.run(
                 ["nvidia-smi", "-L"],
@@ -145,9 +161,18 @@ class MineruConverter(BaseConverter):
                 timeout=5
             )
             if result.returncode == 0:
-                return "hybrid-auto-engine"  # GPU available
+                return "hybrid-auto-engine"  # NVIDIA GPU available
         except Exception:
             pass
+
+        # Check for Apple Silicon MPS (mlx_vlm is installed)
+        try:
+            import torch
+            if torch.backends.mps.is_available():
+                return "hybrid-auto-engine"  # Apple Silicon MPS available
+        except Exception:
+            pass
+
         return "pipeline"  # CPU fallback
 
     def _detect_language(self, file_path: str) -> str:
