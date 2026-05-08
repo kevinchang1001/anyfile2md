@@ -4,6 +4,7 @@
 import os
 import time
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Optional
 
@@ -72,22 +73,67 @@ class BatchProcessor:
         reporter = ProgressReporter(mode=self.progress_mode)
         reporter.start(total=len(queued_files), desc="Converting")
 
+        # Group files by max_workers to enable proper concurrency
+        # GPU files (max_workers=1) must be processed serially
+        # CPU files can be processed in parallel
+        file_groups: dict[int, list[QueuedFile]] = {}
         for qf in queued_files:
             if os.path.exists(qf.output_path) and not overwrite:
                 reporter.update(qf.input_path, "skipped")
                 result.skipped += 1
                 continue
 
-            success, record = self._convert_file_with_retry(qf)
+            max_workers = self._strategy.get_max_workers(qf.input_path)
+            if max_workers not in file_groups:
+                file_groups[max_workers] = []
+            file_groups[max_workers].append(qf)
 
-            if success:
-                result.succeeded += 1
-                result.success_details.append(record)
-                reporter.update(qf.input_path, "success")
+        # Process each group - files within a group can run concurrently
+        for max_workers, files in file_groups.items():
+            if max_workers == 1:
+                # Serial processing for GPU files
+                for qf in files:
+                    success, record = self._convert_file_with_retry(qf)
+                    if success:
+                        result.succeeded += 1
+                        result.success_details.append(record)
+                        reporter.update(qf.input_path, "success")
+                    else:
+                        result.failed += 1
+                        result.failure_details.append(record)
+                        reporter.update(qf.input_path, "failed")
             else:
-                result.failed += 1
-                result.failure_details.append(record)
-                reporter.update(qf.input_path, "failed")
+                # Parallel processing for CPU files
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    future_to_qf = {
+                        executor.submit(self._convert_file_with_retry, qf): qf
+                        for qf in files
+                    }
+                    for future in as_completed(future_to_qf):
+                        qf = future_to_qf[future]
+                        try:
+                            success, record = future.result()
+                            if success:
+                                result.succeeded += 1
+                                result.success_details.append(record)
+                                reporter.update(qf.input_path, "success")
+                            else:
+                                result.failed += 1
+                                result.failure_details.append(record)
+                                reporter.update(qf.input_path, "failed")
+                        except Exception as e:
+                            result.failed += 1
+                            record = FileConversionRecord(
+                                input_path=qf.input_path,
+                                output_path=qf.output_path,
+                                engine="unknown",
+                                quality_score=0,
+                                duration_seconds=0,
+                                error=str(e),
+                                retry_count=0,
+                            )
+                            result.failure_details.append(record)
+                            reporter.update(qf.input_path, "failed")
 
         reporter.finish(result)
         result.duration_seconds = time.time() - start_time
