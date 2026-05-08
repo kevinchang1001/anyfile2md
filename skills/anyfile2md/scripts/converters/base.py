@@ -1,6 +1,8 @@
 # converters/base.py
 """Base converter abstract class."""
 
+import logging
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +13,8 @@ try:
 except ImportError:
     ComplexityDetector = None
     get_detector = None
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -70,9 +74,13 @@ class BaseConverter(ABC):
         if ComplexityDetector is None or get_detector is None:
             return 0.5
 
+        start_time = time.time()
         try:
             detector = self._detector or get_detector()
             result = detector.analyze(file_path)
+            elapsed = time.time() - start_time
+            if elapsed > 0.1:  # Log if > 100ms
+                logger.debug(f"Complexity analysis: {elapsed:.3f}s for {file_path}")
             return self._get_confidence(result.score)
         except Exception:
             return 0.5
