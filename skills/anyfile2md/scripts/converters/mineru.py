@@ -4,7 +4,6 @@ import subprocess
 from pathlib import Path
 
 from .base import BaseConverter, ConversionResult
-from .complexity import ComplexityDetector
 from .confidence import mineru_confidence
 
 
@@ -49,14 +48,12 @@ class MineruConverter(BaseConverter):
         if ext != '.pdf':
             return 0.0
 
-        try:
-            detector = ComplexityDetector()
-            result = detector.analyze(file_path)
+        # Use base class complexity detection -> _get_confidence()
+        return super().can_handle(file_path)
 
-            # Use centralized confidence mapping
-            return mineru_confidence(result.score)
-        except Exception:
-            return 0.0
+    def _get_confidence(self, score: float) -> float:
+        """Map complexity score to MinerU confidence."""
+        return mineru_confidence(score)
 
     def convert(self, input_path: str, output_path: str) -> ConversionResult:
         """Convert file using MinerU do_parse API."""

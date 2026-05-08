@@ -5,7 +5,6 @@ import subprocess
 from pathlib import Path
 
 from .base import BaseConverter, ConversionResult
-from .complexity import ComplexityDetector
 from .confidence import markitdown_confidence
 
 MARKITDOWN_TIMEOUT = 60
@@ -47,16 +46,12 @@ class MarkitdownConverter(BaseConverter):
                 return 0.9
             return 0.0
 
-        # PDF - use complexity detection
-        try:
-            detector = ComplexityDetector()
-            result = detector.analyze(file_path)
+        # PDF - use base class complexity detection -> _get_confidence()
+        return super().can_handle(file_path)
 
-            # Use centralized confidence mapping
-            return markitdown_confidence(result.score)
-        except Exception:
-            # If complexity detection fails, assume simple
-            return 0.5
+    def _get_confidence(self, score: float) -> float:
+        """Map complexity score to MarkItDown confidence."""
+        return markitdown_confidence(score)
 
     def convert(self, input_path: str, output_path: str) -> ConversionResult:
         """Convert file using markitdown CLI."""

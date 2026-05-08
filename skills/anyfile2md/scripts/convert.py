@@ -253,6 +253,14 @@ def main():
         parser.print_help()
         sys.exit(1)
 
+    # Check if file format is supported before attempting conversion
+    if args.input:
+        input_ext = Path(args.input).suffix.lower()
+        if input_ext not in SUPPORTED_EXTENSIONS:
+            print(f"Error: Unsupported file format: {input_ext}", file=sys.stderr)
+            print(f"Supported formats: {', '.join(sorted(SUPPORTED_EXTENSIONS))}", file=sys.stderr)
+            sys.exit(1)
+
     # Use fallback handler for conversion if enabled and available
     if args.fallback and FallbackHandler is not None and args.input:
         handler = FallbackHandler()

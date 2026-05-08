@@ -68,28 +68,24 @@ class ConversionSession:
         }
 
 
-class ErrorTemplate:
-    """Provides error templates and solutions for common errors."""
-
-    @staticmethod
-    def for_engine(engine_name: str) -> str:
-        """Get error template for an engine."""
-        templates = {
-            "markitdown": (
-                "MarkItDown not found or not working.\n"
-                "Solutions:\n"
-                "  1. Install: pip install markitdown\n"
-                "  2. Or run: bash scripts/install_deps.sh"
-            ),
-            "mineru": (
-                "MinerU not available or API error.\n"
-                "Solutions:\n"
-                "  1. Install: pip install mineru\n"
-                "  2. Check GPU availability\n"
-                "  3. Use CPU mode if GPU not available"
-            ),
-        }
-        return templates.get(engine_name, f"Unknown engine: {engine_name}")
+def get_engine_error_template(engine_name: str) -> str:
+    """Get error template for an engine."""
+    templates = {
+        "markitdown": (
+            "MarkItDown not found or not working.\n"
+            "Solutions:\n"
+            "  1. Install: pip install markitdown\n"
+            "  2. Or run: bash scripts/install_deps.sh"
+        ),
+        "mineru": (
+            "MinerU not available or API error.\n"
+            "Solutions:\n"
+            "  1. Install: pip install mineru\n"
+            "  2. Check GPU availability\n"
+            "  3. Use CPU mode if GPU not available"
+        ),
+    }
+    return templates.get(engine_name, f"Unknown engine: {engine_name}")
 
 
 class MineruError(ConversionError):

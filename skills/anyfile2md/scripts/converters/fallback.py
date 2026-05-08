@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 
 from .base import BaseConverter, ConversionResult
 from .errors import ConversionSession, ConversionAttempt
-from .registry import EngineRegistry, select_best_engine
+from .registry import EngineRegistry
 
 
 logger = logging.getLogger(__name__)
@@ -22,19 +22,20 @@ class FallbackHandler:
     engine based on confidence order.
     """
 
-    def __init__(self, max_attempts: int = 2):
+    def __init__(self, registry: EngineRegistry = None, max_attempts: int = 2):
         """
         Initialize FallbackHandler.
 
         Args:
+            registry: Engine registry to use (default: global singleton)
             max_attempts: Maximum number of engines to try (default: 2)
         """
         self.max_attempts = max_attempts
-        self.registry = EngineRegistry()
+        self.registry = registry or EngineRegistry()
 
     def get_available_engines(self) -> list[BaseConverter]:
         """Get all available engines (unsorted, sorting happens in convert_with_fallback)."""
-        return [e for e in self.registry._engines if e.is_available()]
+        return self.registry.get_available_engines()
 
     def convert_with_fallback(
         self,
@@ -134,4 +135,4 @@ class FallbackHandler:
 
     def get_best_engine(self, file_path: str) -> Tuple[BaseConverter, float]:
         """Get the best engine for a file."""
-        return select_best_engine(file_path)
+        return self.registry.select_engine(file_path)

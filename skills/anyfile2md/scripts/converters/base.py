@@ -6,6 +6,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+try:
+    from .complexity import ComplexityDetector
+except ImportError:
+    ComplexityDetector = None
+
 
 @dataclass
 class ConversionResult:
@@ -36,11 +41,38 @@ class BaseConverter(ABC):
         """Lower = higher priority. Default 50."""
         return 50
 
-    @abstractmethod
     def can_handle(self, file_path: str) -> float:
         """
         Return confidence (0.0-1.0) that this converter can handle the file.
-        0.0 = cannot handle, 1.0 = perfect match.
+
+        Default implementation uses complexity detection + engine-specific
+        confidence mapping via _get_confidence().
+        """
+        ext = Path(file_path).suffix.lower()
+        if ext != '.pdf':
+            # Non-PDF files: use extension-based confidence
+            return 0.0
+
+        if ComplexityDetector is None:
+            return 0.5
+
+        try:
+            detector = ComplexityDetector()
+            result = detector.analyze(file_path)
+            return self._get_confidence(result.score)
+        except Exception:
+            return 0.5
+
+    @abstractmethod
+    def _get_confidence(self, score: float) -> float:
+        """
+        Map complexity score to engine-specific confidence.
+
+        Args:
+            score: Complexity score from ComplexityDetector (0-10)
+
+        Returns:
+            Confidence value between 0 and 1
         """
         pass
 

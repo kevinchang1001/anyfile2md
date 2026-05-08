@@ -74,6 +74,10 @@ class EngineRegistry:
         """List all registered engine names."""
         return [e.name for e in self._engines if e.is_available()]
 
+    def get_available_engines(self) -> list[BaseConverter]:
+        """Return all available engine instances."""
+        return [e for e in self._engines if e.is_available()]
+
 
 # Module-level convenience function
 def get_default_engine() -> BaseConverter:

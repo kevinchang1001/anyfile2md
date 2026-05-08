@@ -1,5 +1,5 @@
 # evals/test_fallback.py
-from scripts.converters.errors import ConversionError, ErrorTemplate
+from scripts.converters.errors import ConversionError, get_engine_error_template
 
 
 def test_conversion_error_structure():
@@ -28,8 +28,8 @@ def test_conversion_error_str():
 
 
 def test_error_template_for_engine():
-    """ErrorTemplate provides solutions for common errors."""
-    template = ErrorTemplate.for_engine("markitdown")
+    """get_engine_error_template provides solutions for common errors."""
+    template = get_engine_error_template("markitdown")
     assert "markitdown" in template
     assert "install" in template.lower() or "pip" in template.lower()
 
