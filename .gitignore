@@ -5,7 +5,6 @@
 *.so
 
 # Output files (user data)
-*.md
 output_markdown/
 input_files/
 
